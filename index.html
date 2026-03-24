@@ -13,32 +13,29 @@ body {
   overflow: hidden;
   background: #0a0005;
   font-family: 'Playfair Display', Georgia, serif;
+  cursor: pointer;
 }
 
-/* RAIN COLUMNS */
 .rain {
   position: absolute;
   top: -180px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 20px;
+  font-size: clamp(12px, 3vw, 18px);
   font-weight: 700;
   opacity: 0.65;
   animation: fall linear forwards;
 }
 
 .rain span {
-  line-height: 16px;
+  line-height: clamp(11px, 2.5vw, 15px);
 }
 
 @keyframes fall {
-  to {
-    transform: translateY(125vh);
-  }
+  to { transform: translateY(125vh); }
 }
 
-/* CENTER */
 .center {
   position: absolute;
   top: 50%;
@@ -46,45 +43,55 @@ body {
   transform: translate(-50%, -50%);
   text-align: center;
   width: 90vw;
+  z-index: 5;
 }
 
-/* TIMER */
-#timer {
-  font-size: 110px;
-  font-weight: 900;
-  color: #e0005e;
-  opacity: 0;
-  text-shadow:
-    0 0 20px #e0005e,
-    0 0 60px #9b0040;
-  transition: opacity 0.3s;
-}
-
-/* TEXT */
 #mainText {
-  font-size: 85px;
+  font-size: clamp(38px, 11vw, 75px);
   font-weight: 900;
   color: #e0005e;
   opacity: 0;
   text-align: center;
   transition: opacity 0.5s;
-  text-shadow:
-    0 0 20px #e0005e,
-    0 0 60px #9b0040;
-  line-height: 1.1;
+  text-shadow: 0 0 20px #e0005e, 0 0 60px #9b0040;
+  line-height: 1.15;
 }
 
-/* HEART CANVAS */
+#tapHint {
+  position: fixed;
+  bottom: 12%;
+  width: 100%;
+  text-align: center;
+  color: #e0005e;
+  font-size: clamp(14px, 4vw, 20px);
+  opacity: 0.6;
+  letter-spacing: 0.15em;
+  animation: blink 1.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.15; }
+}
+
 #heartCanvas {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   pointer-events: none;
   opacity: 0;
   transition: opacity 1s;
   z-index: 10;
+}
+
+#rippleCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 20;
 }
 </style>
 </head>
@@ -92,122 +99,91 @@ body {
 <body>
 
 <canvas id="heartCanvas"></canvas>
+<canvas id="rippleCanvas"></canvas>
 
 <div class="center">
-  <div id="timer"></div>
   <div id="mainText"></div>
 </div>
+
+<div id="tapHint">Нажми!</div>
 
 <script>
 const words = ["Happy", "Birthday", "to", "You"];
 const textEl = document.getElementById("mainText");
-const timerEl = document.getElementById("timer");
+const tapHint = document.getElementById("tapHint");
 
-/* START AFTER 3 SEC */
-setTimeout(() => {
-  startRain();
-  startTimer();
-}, 3000);
+let started = false;
+let wordIndex = 0;
 
-/* CREATE COLUMN */
-function createColumn() {
-  let div = document.createElement("div");
-  div.className = "rain";
+/* START ON FIRST CLICK / TAP */
+function handleStart(e) {
+  const cx = e.clientX !== undefined ? e.clientX : window.innerWidth / 2;
+  const cy = e.clientY !== undefined ? e.clientY : window.innerHeight / 2;
 
-  const text = ["h","a","p","p","y","","b","i","r","t","h","d","a","y"];
-
-  text.forEach(char => {
-    let span = document.createElement("span");
-    span.innerText = char;
-
-    if (char === "") {
-      span.style.marginBottom = "12px";
-    }
-
-    div.appendChild(span);
-  });
-
-  div.style.left = Math.random() * 100 + "vw";
-  div.style.animationDuration = (4 + Math.random() * 4) + "s";
-
-  /* Deep, rich expanded color palette */
-  const shades = [
-    "#e0005e", "#b3004b", "#8c0038", "#cc0055", "#ff0066",
-    "#ff3399", "#d4006b", "#ff006a", "#7a0033", "#ff80bf"
-  ];
-  div.style.color = shades[Math.floor(Math.random() * shades.length)];
-
-  document.body.appendChild(div);
-
-  /* Remove ONLY when animation ends (i.e. reaches bottom of screen) */
-  div.addEventListener("animationend", () => {
-    div.remove();
-  });
-}
-
-/* START RAIN */
-function startRain() {
-  setInterval(() => {
-    createColumn();
-  }, 120);
-}
-
-/* TIMER */
-function startTimer() {
-  let count = 3;
-  timerEl.style.opacity = 1;
-
-  let interval = setInterval(() => {
-    timerEl.textContent = count;
-    count--;
-
-    if (count < 0) {
-      clearInterval(interval);
-      timerEl.style.opacity = 0;
-      startWords();
-    }
-  }, 1000);
-}
-
-/* SEQUENTIAL WORDS */
-let index = 0;
-
-function startWords() {
-  showWord();
-}
-
-function showWord() {
-  if (index >= words.length) {
-    showFinal();
-    return;
+  if (!started) {
+    started = true;
+    tapHint.style.display = "none";
+    startRain();
+    showWord();
   }
 
-  textEl.textContent = words[index];
-  textEl.style.opacity = 1;
+  spawnRipple({ clientX: cx, clientY: cy });
+}
 
+document.addEventListener("click", handleStart);
+document.addEventListener("touchstart", e => {
+  const t = e.touches[0];
+  handleStart({ clientX: t.clientX, clientY: t.clientY });
+}, { passive: true });
+
+/* RAIN */
+function createColumn() {
+  const div = document.createElement("div");
+  div.className = "rain";
+  const text = ["h","a","p","p","y","","b","i","r","t","h","d","a","y"];
+  text.forEach(char => {
+    const span = document.createElement("span");
+    span.innerText = char;
+    if (char === "") span.style.marginBottom = "12px";
+    div.appendChild(span);
+  });
+  div.style.left = Math.random() * 100 + "vw";
+  div.style.animationDuration = (4 + Math.random() * 4) + "s";
+  const shades = [
+    "#e0005e","#b3004b","#8c0038","#cc0055","#ff0066",
+    "#ff3399","#d4006b","#ff006a","#7a0033","#ff80bf"
+  ];
+  div.style.color = shades[Math.floor(Math.random() * shades.length)];
+  document.body.appendChild(div);
+  div.addEventListener("animationend", () => div.remove());
+}
+
+function startRain() {
+  setInterval(createColumn, 120);
+}
+
+/* WORDS */
+function showWord() {
+  if (wordIndex >= words.length) { showFinal(); return; }
+  textEl.textContent = words[wordIndex];
+  textEl.style.opacity = 1;
   setTimeout(() => {
     textEl.style.opacity = 0;
-    index++;
+    wordIndex++;
     setTimeout(showWord, 400);
   }, 1400);
 }
 
-/* FINAL */
 function showFinal() {
-  textEl.innerHTML = "Happy Birthday<br>to You";
+  textEl.innerHTML = "Happy Birthday<br>to Yaryna!";
   textEl.style.opacity = 1;
-
-  /* Show heart after text fades in */
-  setTimeout(() => {
-    showHeart();
-  }, 1200);
+  setTimeout(showHeart, 1200);
 }
 
-/* HEART MADE OF PARTICLES */
+/* HEART */
 function showHeart() {
   const canvas = document.getElementById("heartCanvas");
   const ctx = canvas.getContext("2d");
-
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   canvas.style.opacity = 1;
@@ -215,56 +191,38 @@ function showHeart() {
   const cx = canvas.width / 2;
   const cy = canvas.height / 2 + 60;
   const scale = Math.min(canvas.width, canvas.height) / 420;
-
-  const colors = [
-    "#ff0066", "#e0005e", "#ff3399", "#cc0055",
-    "#ff80bf", "#b3004b", "#ff006a", "#ff4da6"
-  ];
+  const colors = ["#ff0066","#e0005e","#ff3399","#cc0055","#ff80bf","#b3004b","#ff006a","#ff4da6"];
 
   const particles = [];
-  const count = 280;
-
-  for (let i = 0; i < count; i++) {
-    const t = (i / count) * Math.PI * 2;
-    /* Heart parametric equation */
+  for (let i = 0; i < 280; i++) {
+    const t = (i / 280) * Math.PI * 2;
     const hx = 16 * Math.pow(Math.sin(t), 3);
     const hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
-
     particles.push({
-      /* Start from screen center */
-      x: cx,
-      y: canvas.height / 2,
-      /* Target heart position */
+      x: cx, y: canvas.height / 2,
       tx: cx + hx * scale * 10,
       ty: cy + hy * scale * 10,
       size: 3 + Math.random() * 3,
       color: colors[Math.floor(Math.random() * colors.length)],
       progress: 0,
       speed: 0.012 + Math.random() * 0.016,
-      delay: Math.random() * 0.5,
+      delay: Math.random() * 0.5
     });
   }
 
   let startTime = null;
-
   function animate(ts) {
     if (!startTime) startTime = ts;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     let allDone = true;
-
     particles.forEach(p => {
       const elapsed = (ts - startTime) / 1000;
       if (elapsed < p.delay) { allDone = false; return; }
-
       p.progress = Math.min(1, p.progress + p.speed);
       if (p.progress < 1) allDone = false;
-
-      /* Ease out cubic */
       const ease = 1 - Math.pow(1 - p.progress, 3);
       const x = p.x + (p.tx - p.x) * ease;
       const y = p.y + (p.ty - p.y) * ease;
-
       ctx.beginPath();
       ctx.arc(x, y, p.size, 0, Math.PI * 2);
       ctx.fillStyle = p.color;
@@ -272,31 +230,21 @@ function showHeart() {
       ctx.shadowBlur = 8;
       ctx.fill();
     });
-
-    if (!allDone) {
-      requestAnimationFrame(animate);
-    } else {
-      /* Gentle pulse after formed */
-      pulseHeart(canvas, ctx, particles, cx, cy, scale, colors);
-    }
+    if (!allDone) requestAnimationFrame(animate);
+    else pulseHeart(canvas, ctx, particles, cx, cy);
   }
-
   requestAnimationFrame(animate);
 }
 
-/* PULSE AFTER HEART FORMS */
-function pulseHeart(canvas, ctx, particles, cx, cy, scale, colors) {
+function pulseHeart(canvas, ctx, particles, cx, cy) {
   let phase = 0;
-
   function pulse() {
     phase += 0.04;
     const s = 1 + 0.06 * Math.sin(phase);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     particles.forEach(p => {
       const x = cx + (p.tx - cx) * s;
-      const y = (canvas.height / 2 + 60) + (p.ty - (canvas.height / 2 + 60)) * s;
-
+      const y = cy + (p.ty - cy) * s;
       ctx.beginPath();
       ctx.arc(x, y, p.size, 0, Math.PI * 2);
       ctx.fillStyle = p.color;
@@ -304,12 +252,95 @@ function pulseHeart(canvas, ctx, particles, cx, cy, scale, colors) {
       ctx.shadowBlur = 10;
       ctx.fill();
     });
-
     requestAnimationFrame(pulse);
   }
-
   pulse();
 }
+
+/* RIPPLE */
+const rippleCanvas = document.getElementById("rippleCanvas");
+const rctx = rippleCanvas.getContext("2d");
+
+function resizeRipple() {
+  rippleCanvas.width = window.innerWidth;
+  rippleCanvas.height = window.innerHeight;
+}
+resizeRipple();
+window.addEventListener("resize", resizeRipple);
+
+const ripples = [];
+const rippleColors = ["#ff0066","#ff3399","#e0005e","#ff80bf","#cc0055","#ff006a","#b3004b","#ff4da6"];
+
+function spawnRipple(e) {
+  const count = 10 + Math.floor(Math.random() * 8);
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+    const speed = 2.5 + Math.random() * 4;
+    ripples.push({
+      x: e.clientX, y: e.clientY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: 2 + Math.random() * 3,
+      alpha: 1,
+      color: rippleColors[Math.floor(Math.random() * rippleColors.length)],
+      trail: []
+    });
+  }
+  ripples.push({
+    ring: true,
+    x: e.clientX, y: e.clientY,
+    r: 0, alpha: 0.9,
+    color: rippleColors[Math.floor(Math.random() * rippleColors.length)]
+  });
+}
+
+function animateRipples() {
+  rctx.clearRect(0, 0, rippleCanvas.width, rippleCanvas.height);
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const p = ripples[i];
+    if (p.ring) {
+      p.r += 3.5;
+      p.alpha -= 0.03;
+      if (p.alpha <= 0) { ripples.splice(i, 1); continue; }
+      rctx.beginPath();
+      rctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      rctx.strokeStyle = p.color;
+      rctx.globalAlpha = p.alpha;
+      rctx.lineWidth = 2;
+      rctx.shadowColor = p.color;
+      rctx.shadowBlur = 10;
+      rctx.stroke();
+      rctx.globalAlpha = 1;
+    } else {
+      p.trail.push({ x: p.x, y: p.y });
+      if (p.trail.length > 5) p.trail.shift();
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.18;
+      p.alpha -= 0.03;
+      if (p.alpha <= 0) { ripples.splice(i, 1); continue; }
+      for (let t = 0; t < p.trail.length; t++) {
+        const tf = t / p.trail.length;
+        rctx.beginPath();
+        rctx.arc(p.trail[t].x, p.trail[t].y, p.radius * tf * 0.7, 0, Math.PI * 2);
+        rctx.fillStyle = p.color;
+        rctx.globalAlpha = p.alpha * tf * 0.5;
+        rctx.fill();
+      }
+      rctx.beginPath();
+      rctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      rctx.fillStyle = p.color;
+      rctx.globalAlpha = p.alpha;
+      rctx.shadowColor = p.color;
+      rctx.shadowBlur = 12;
+      rctx.fill();
+      rctx.globalAlpha = 1;
+      rctx.shadowBlur = 0;
+    }
+  }
+  requestAnimationFrame(animateRipples);
+}
+animateRipples();
 </script>
 
 </body>
