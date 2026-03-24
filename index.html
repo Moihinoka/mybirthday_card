@@ -3,76 +3,140 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Happy Birthday</title>
+<title>Birthday</title>
 
 <style>
 body {
   margin: 0;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(270deg, #ff6ec4, #7873f5);
-  background-size: 400% 400%;
-  animation: bgAnimation 8s ease infinite;
-  font-family: Arial, sans-serif;
   overflow: hidden;
+  background: black;
+  font-family: Arial, sans-serif;
 }
 
-@keyframes bgAnimation {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.text {
+/* ДОЩ ТЕКСТУ */
+.rain {
   position: absolute;
-  font-size: 50px;
-  color: white;
-  opacity: 0;
-  transform: scale(0.5);
-  animation: showText 2s ease forwards;
+  top: -50px;
+  color: pink;
+  font-size: 18px;
+  opacity: 0.2;
+  animation: fall linear infinite;
+  white-space: nowrap;
 }
 
-@keyframes showText {
-  0% {
-    opacity: 0;
-    transform: scale(0.5);
+@keyframes fall {
+  to {
+    transform: translateY(110vh);
   }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1);
-  }
+}
+
+/* ЦЕНТР */
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ТАЙМЕР */
+#timer {
+  font-size: 80px;
+  color: #ff4da6;
+  opacity: 0;
+}
+
+/* ТЕКСТ */
+#mainText {
+  font-size: 60px;
+  color: #ff4da6;
+  opacity: 0;
+  text-align: center;
+  transition: opacity 0.5s;
 }
 </style>
 </head>
 
 <body>
 
-<div id="text" class="text"></div>
+<div class="center">
+  <div id="timer"></div>
+  <div id="mainText"></div>
+</div>
 
 <script>
 const words = ["Happy", "Birthday", "to", "You"];
-let index = 0;
-const textEl = document.getElementById("text");
+const textEl = document.getElementById("mainText");
+const timerEl = document.getElementById("timer");
 
-function showNextWord() {
-  if (index >= words.length) return;
+/* СТАРТ ЧЕРЕЗ 3 СЕК */
+setTimeout(() => {
+  startRain();
+  startTimer();
+}, 3000);
 
-  textEl.textContent = words[index];
-  textEl.style.animation = "none";
-  void textEl.offsetWidth; // перезапуск анімації
-  textEl.style.animation = "showText 2s ease forwards";
+/* ДОЩ */
+function startRain() {
+  for (let i = 0; i < 80; i++) {
+    let span = document.createElement("div");
+    span.className = "rain";
+    span.innerText = "happy birthday";
 
-  index++;
-  setTimeout(showNextWord, 2000);
+    span.style.left = Math.random() * 100 + "vw";
+    span.style.animationDuration = (3 + Math.random() * 5) + "s";
+
+    /* РІЗНІ ТЕМНІ ВІДТІНКИ РОЖЕВОГО */
+    const shades = ["#ff4d94", "#cc0066", "#99004d", "#b30059"];
+    span.style.color = shades[Math.floor(Math.random() * shades.length)];
+
+    document.body.appendChild(span);
+  }
 }
 
-showNextWord();
+/* ТАЙМЕР */
+function startTimer() {
+  let count = 3;
+  timerEl.style.opacity = 1;
+
+  let interval = setInterval(() => {
+    timerEl.textContent = count;
+    count--;
+
+    if (count < 0) {
+      clearInterval(interval);
+      timerEl.style.opacity = 0;
+      startWords();
+    }
+  }, 1000);
+}
+
+/* СЛОВА */
+let index = 0;
+
+function startWords() {
+  showWord();
+}
+
+function showWord() {
+  if (index >= words.length) {
+    showFinal();
+    return;
+  }
+
+  textEl.textContent = words[index];
+  textEl.style.opacity = 1;
+
+  setTimeout(() => {
+    textEl.style.opacity = 0;
+    index++;
+    setTimeout(showWord, 500);
+  }, 1500);
+}
+
+/* ФІНАЛ */
+function showFinal() {
+  textEl.textContent = "Happy Birthday to You";
+  textEl.style.opacity = 1;
+}
 </script>
 
 </body>
