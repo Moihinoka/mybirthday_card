@@ -78,19 +78,22 @@ setTimeout(() => {
   startRain();
   startTimer();
 }, 3000);
-
-/* ДОЩ БУКВАМИ */
-function createColumn(text) {
+function createColumn() {
   let div = document.createElement("div");
   div.className = "rain";
 
-  const fullText = "happybirthday";
+  const text = ["h","a","p","p","y","","b","i","r","t","h","d","a","y"];
 
-  for (let char of fullText) {
+  text.forEach(char => {
     let span = document.createElement("span");
     span.innerText = char;
+    
+    if (char === "") {
+      span.style.marginBottom = "10px"; // відступ між словами
+    }
+
     div.appendChild(span);
-  }
+  });
 
   div.style.left = Math.random() * 100 + "vw";
   div.style.animationDuration = (4 + Math.random() * 4) + "s";
